@@ -11,7 +11,6 @@ from data_loader import MTDataset
 from utils import english_tokenizer_load
 from model import make_model, LabelSmoothing
 
-
 class NoamOpt:
     """Optim wrapper that implements rate."""
 
@@ -95,15 +94,16 @@ def check_opt():
     plt.show()
 
 
-def one_sentence_translate(sent, beam_search=True):
+def one_sentence_translate(sent, model=None, beam_search=True):
     # 初始化模型
-    model = make_model(config.src_vocab_size, config.tgt_vocab_size, config.n_layers,
+    if model == None:
+        model = make_model(config.src_vocab_size, config.tgt_vocab_size, config.n_layers,
                        config.d_model, config.d_ff, config.n_heads, config.dropout)
     BOS = english_tokenizer_load().bos_id()  # 2
     EOS = english_tokenizer_load().eos_id()  # 3
     src_tokens = [[BOS] + english_tokenizer_load().EncodeAsIds(sent) + [EOS]]
     batch_input = torch.LongTensor(np.array(src_tokens)).to(config.device)
-    translate(batch_input, model, use_beam=beam_search)
+    return translate(batch_input, model, use_beam=beam_search)
 
 
 def translate_example():
@@ -115,10 +115,33 @@ def translate_example():
     one_sentence_translate(sent, beam_search=True)
 
 
+
+
 if __name__ == "__main__":
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     import warnings
     warnings.filterwarnings('ignore')
     # run()
-    translate_example()
+    # translate_example()
+
+    model = make_model(config.src_vocab_size, config.tgt_vocab_size, config.n_layers,
+                       config.d_model, config.d_ff, config.n_heads, config.dropout)
+    test_dataset = MTDataset(config.test_data_path, sort=False)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
+                                collate_fn=test_dataset.collate_fn)
+    eng_sent, ch_sent = test_dataset.out_en_sent, test_dataset.out_cn_sent
+    # print(data[1])
+    for i in range(50):
+        # print(eng_sent)
+        translated = one_sentence_translate(eng_sent[i], model, beam_search=True)
+        print('src:', eng_sent[i])
+        print('tgt:', ch_sent[i])
+        print('translated:', translated)
+        print('-------------------')
+    if config.use_smoothing:
+        criterion = LabelSmoothing(size=config.tgt_vocab_size, padding_idx=config.padding_idx, smoothing=0.1)
+        criterion.cuda()
+    else:
+        criterion = torch.nn.CrossEntropyLoss(ignore_index=0, reduction='sum')
+    test(test_dataloader, model, criterion)

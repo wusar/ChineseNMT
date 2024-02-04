@@ -199,4 +199,5 @@ def translate(src, model, use_beam=True):
         else:
             decode_result = batch_greedy_decode(model, src, src_mask, max_len=config.max_len)
         translation = [sp_chn.decode_ids(_s) for _s in decode_result]
-        print(translation[0])
+        # print(translation[0])
+        return translation[0]

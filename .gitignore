@@ -5,3 +5,5 @@ tokenizer/*.model
 tokenizer/*.vocab
 experiment/*.pth
 experiment/output.txt
+**/__pycache__/**
+data/**

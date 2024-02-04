@@ -55,8 +55,8 @@ class Batch:
 
 
 class MTDataset(Dataset):
-    def __init__(self, data_path):
-        self.out_en_sent, self.out_cn_sent = self.get_dataset(data_path, sort=True)
+    def __init__(self, data_path, sort=True):
+        self.out_en_sent, self.out_cn_sent = self.get_dataset(data_path, sort=sort)
         self.sp_eng = english_tokenizer_load()
         self.sp_chn = chinese_tokenizer_load()
         self.PAD = self.sp_eng.pad_id()  # 0
@@ -70,12 +70,16 @@ class MTDataset(Dataset):
 
     def get_dataset(self, data_path, sort=False):
         """把中文和英文按照同样的顺序排序, 以英文句子长度排序的(句子下标)顺序为基准"""
-        dataset = json.load(open(data_path, 'r'))
+        fp = open(data_path, encoding='utf-8')
+        dataset = fp.readlines()
         out_en_sent = []
         out_cn_sent = []
-        for idx, _ in enumerate(dataset):
-            out_en_sent.append(dataset[idx][0])
-            out_cn_sent.append(dataset[idx][1])
+        for idx, line in enumerate(dataset):
+            en, cn = line.replace('\n', '').split('\t')
+            # print(cn)
+            out_en_sent.append(en)
+            out_cn_sent.append(cn)
+        
         if sort:
             sorted_index = self.len_argsort(out_en_sent)
             out_en_sent = [out_en_sent[i] for i in sorted_index]
